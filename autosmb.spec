@@ -16,7 +16,6 @@ Requires: samba-client, autofs
 BuildArch: noarch
 
 %description
-
 This is an automounter helper script for autofs.
 
 Add this to /etc/auto.master 
