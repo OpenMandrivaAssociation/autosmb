@@ -1,6 +1,6 @@
 %define name autosmb
 %define version 1.1
-%define release %mkrel 4
+%define release %mkrel 5
 
 Summary: Automounter script for autods
 Name: %name
