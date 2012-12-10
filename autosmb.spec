@@ -48,3 +48,34 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /etc/auto.smb.conf
 %doc
 
+
+
+%changelog
+* Thu Dec 09 2010 Oden Eriksson <oeriksson@mandriva.com> 1.1-6mdv2011.0
++ Revision: 616656
+- the mass rebuild of 2010.0 packages
+
+* Tue Sep 01 2009 Thierry Vignaud <tv@mandriva.org> 1.1-5mdv2010.0
++ Revision: 423993
+- rebuild
+
+* Thu Jun 19 2008 Thierry Vignaud <tv@mandriva.org> 1.1-4mdv2009.0
++ Revision: 226202
+- rebuild
+- fix spacing at top of description
+
+  + Olivier Blin <oblin@mandriva.com>
+    - restore BuildRoot
+
+* Mon Dec 17 2007 Thierry Vignaud <tv@mandriva.org> 1.1-3mdv2008.1
++ Revision: 122276
+- kill re-definition of %%buildroot on Pixel's request
+- import autosmb
+
+
+* Thu Oct 20 2005 Lenny Cartier <lenny@mandriva.com> 1.1-3mdk
+- rebuild
+
+* Thu Jan 29 2004 Lenny Cartier <lenny@mandrakesoft.com> 1.1-2mdk
+- from Robin Rosenberg <robin.rosenberg@dewire.com> :
+	- Initial build.

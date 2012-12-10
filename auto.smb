@@ -1,0 +1,136 @@
+#!/bin/bash
+# -------------------------------------------------------------------
+# Filename: auto.smb
+# Version: 1.1
+# Author: Dieter Demerre
+# CopyRight: GPL
+# Disclaimer: No guarantee to function, Use at Own Risk.
+# History: 2001-09-28
+#    v1.0 2001-09-28 dd First functioning implementation
+#    v1.1 2001-10-01 dd Removed passwords from script file,
+#                       introduction auto.smb.conf
+#                       debug-flag now protected
+#         2003-05-07 robin.rosenberg.dewire.com Add support for credentials
+# -------------------------------------------------------------------
+# An executable that should be able to detect what shares are
+# accessable for a certain machine (passed as argument),
+# and thus output its mount-scheme.
+#
+# Credentials can be used in order to supply a domain name for the
+# authentication. When credentials are used you should supply
+# extra options in the credentials file for group id /
+# 
+# $default:@/home/robin/credentials:-:,gid=robin,dmask=0775,fmask=0774
+#
+# -------------------------------------------------------------------
+# Framework based upon the /etc/auto.net file delivered with SuSE 7.1
+# -------------------------------------------------------------------
+
+CONFIGFILE=/etc/auto.smb.conf
+
+# These lines should protect the internal debug-flag  from tampering
+# by the caller.  They should appear as first lines in the script.
+if test ! -z "$debug" ; then
+  autosmbdebug=$debug
+  unset debug
+fi
+
+if [ -x /usr/bin/smbclient3 ]
+then
+    SMBVERSION=3
+elif [ -x /usr/bin/smbclient2 ]
+then
+    SMBVERSION=2
+else
+    SMBVERSION=""
+fi
+
+# To enable a small executional trace, set debug=Y all else produces
+# no debug info.
+#debug=Y
+
+# -------------------------------------------------------------------
+# This file contains some constants that can be overridden by the
+# $default line within the configuration file.
+# -------------------------------------------------------------------
+defUSR=Guest
+defPWD=Guest
+defOPT=",gid=disk,dmask=0775,fmask=0774"
+
+function ReadConfiguration
+{
+
+  if test ! -z "$debug" -a "$debug" = "Y" ; then echo "checking $2 for $1" ; fi
+  if test -z "$2" -o ! \( -f "$2" -a -r "$2" \); then
+    SMBN=$defUSR
+    SMBP=$defPWD
+    OPTS=$defOPT
+    echo "Error calling ReadConfiguration (no filename or $2 is unreadble)" >&2
+  else 
+    `grep '^\$default:' $2 | awk -F: -- '
+         { print "export defUSR=" $2 " defPWD=" $3 " defOPT=" $4 "" }
+       '
+    `  
+    if test ! -z "$debug" -a "$debug" = "Y" ; then 
+      echo "retrieved default U:$defUSR, P:$defPWD; O:$defOPT"
+    fi
+    SMBN=$defUSR
+    SMBP=$defPWD
+    OPTS=$defOPT
+    `grep ^$1: $2 | awk -F: -- '
+         { print "export SMBN=" $2 " SMBP=" $3 " OPTS=" $4 }
+       '
+    `
+    if test -z "$OPTS" ; then OPTS=$defOPT ; fi
+    if test ! -z "$debug" -a "$debug" = "Y" ; then 
+      echo "retrieved info for $1 U:$SMBN, P:$SMBP; O:$OPTS"
+    fi
+  fi
+  if [ "${SMBN:0:1}" = "@" ]
+  then
+    CRED="${SMBN:1}"
+    SMBN=$(awk -F= '/username/ { print $2 }' "$CRED")
+    SMBP=$(awk -F= '/password/ { print $2 }' "$CRED")
+    MID=",credentials=$CRED"
+    LOP="-U $SMBN%$SMBP"
+  else
+    if test -z "$SMBP" ; then
+	MID=",username=$SMBN"
+	LOP="-U $SMBN -N"
+    else
+	MID=",username=$SMBN,password=$SMBP"
+	LOP="-U $SMBN%$SMBP"
+    fi
+  fi
+  if test ! -z "$debug" -a "$debug" = "Y" ; then 
+    echo "composed for $1 U:\"$SMBN\", P:\"$SMBP\"; O:\"$OPTS\"; L=\"$LOP\"; M=\"$MID\""
+  fi
+}
+
+if test -z "$1" ; then 
+  host=localhost
+else
+  host="$1"
+fi
+
+test ! -z "$CONFIGFILE" -a -f "$CONFIGFILE"  &&  ReadConfiguration "$host" "$CONFIGFILE" ;
+
+# Change smbclient and smbfs s/$/2/
+opts="-fstype=smbfs$SMBVERSION$OPTS$MID"
+SMBCLIENT="/usr/bin/smbclient$SMBVERSION -L $host $LOP"
+
+if test ! -z "$debug" -a "$debug" = "Y" ; then 
+  echo "command $SMBCLIENT"
+fi
+
+$SMBCLIENT | grep '[^ ]*[^$ ] *Disk[$ ]*[^/]' | sort +0 | \
+	awk -v key="$host" -v opts="$opts" -- '
+	BEGIN		{ ORS=""; first=1 }
+			{ if (first) { print opts; first=0 }; print " \\\n\t/" $1, "//" key "/" $1 }
+	END		{ if (!first) print "\n"; else exit 1 }
+	'
+
+if test ! -z "$autosmbdebug" ; then
+  debug=$autosmbdebug
+  unset autosmbdebug
+fi
