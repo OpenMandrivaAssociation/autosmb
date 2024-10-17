@@ -8,7 +8,7 @@ Version: %version
 Release: %release
 License: GPL
 Group: System/Kernel and hardware
-URL: http://www.historischtheater.be/ddemerre/
+URL: https://www.historischtheater.be/ddemerre/
 Source1: auto.smb
 Source2: auto.smb.conf
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
